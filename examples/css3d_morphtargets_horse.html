@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js css3d - morph targets - horse</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			a {
+				color: #fff;
+			}
+
+			}
+		</style>
+	</head>
+	<body>
+
+		<script src="../build/three.min.js"></script>
+
+		<script src="js/libs/stats.min.js"></script>
+
+		<script src="js/controls/OrbitControls.js"></script>
+
+		<script src="js/renderers/CSS3DRenderer.js"></script>
+
+		<script>
+
+			var mesh, renderer, scene, camera, controls;
+
+			var duration = 1000;
+			var keyframes = 15, interpolation = duration / keyframes;
+			var lastKeyframe = 0, currentKeyframe = 0;
+
+			var clock = new THREE.Clock();
+
+			init();
+			animate();
+
+			function init() {
+
+				info = document.createElement( 'div' );
+				info.style.position = 'absolute';
+				info.style.top = '30px';
+				info.style.width = '100%';
+				info.style.textAlign = 'center';
+				info.style.color = '#fff';
+				info.style.fontWeight = 'bold';
+				info.style.backgroundColor = 'transparent';
+				info.style.zIndex = '1';
+				info.innerHTML = '<a href="http://threejs.org" target="_blank">three.js css3d</a> - morph targets - lights. ' + 
+								 'model by <a href="http://mirada.com/">mirada</a> from <a href="http://ro.me">rome</a><br/><br/>' +
+								 'drag to rotate';
+				document.body.appendChild( info );
+
+				renderer = new THREE.CSS3DRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				scene = new THREE.Scene();
+				
+				camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 10, 10000 );
+				camera.position.set( -200, 0, 300 );
+
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.maxDistance = 400;
+				controls.minDistance = 100;
+				controls.maxPolarAngle = Math.PI / 2;
+				controls.minPolarAngle = Math.PI / 2;
+				controls.noPan = true;
+
+				var ambient = new THREE.AmbientLight( 0x222222 );
+				scene.add( ambient );
+				
+				var light1 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+				light1.position.set( 1, 1, 1 );
+				scene.add( light1 );
+
+				var light2 = new THREE.DirectionalLight( 0xffffff, 0.5 );
+				light2.position.set( - 1 , 1, 1 );
+				scene.add( light2 );
+
+				var material = new THREE.MeshLambertMaterial( {
+					color: 0xffffff,
+					side: THREE.FrontSide,
+					vertexColors: THREE.FaceColors,
+					transparent: false,
+					opacity: 1.0,
+					morphTargets: true,
+				} );
+
+				var loader = new THREE.JSONLoader();
+
+				loader.load( "models/animated/horse.js", function( geometry ) {
+
+					for ( var i = 0, il = geometry.faces.length; i < il; i ++ ) {
+
+						var face = geometry.faces[ i ];
+
+						face.color.setHSL( THREE.Math.randFloat( 0.05, 0.07 ), 0.9, 0.6 );
+
+					}
+
+					mesh = new THREE.Mesh( geometry, material );
+					mesh.scale.multiplyScalar( 0.8 );
+					mesh.position.set( 0, -80, -2000 );
+					scene.add( mesh );
+
+				} );
+
+				stats = new Stats();
+				document.body.appendChild( stats.domElement );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				controls.update();
+
+				stats.update();
+
+				render();
+
+			}
+
+			function render() {
+
+				if ( mesh && mesh.morphTargetInfluences !== undefined ) {
+
+					// Alternate morph targets
+
+					var time = Date.now() % duration;
+
+					var keyframe = Math.floor( time / interpolation );
+
+					if ( keyframe != currentKeyframe ) {
+
+						mesh.morphTargetInfluences[ lastKeyframe ] = 0;
+						mesh.morphTargetInfluences[ currentKeyframe ] = 1;
+						mesh.morphTargetInfluences[ keyframe ] = 0;
+
+						lastKeyframe = currentKeyframe;
+						currentKeyframe = keyframe;
+
+						// console.log( mesh.morphTargetInfluences );
+
+					}
+
+					mesh.morphTargetInfluences[ keyframe ] = ( time % interpolation ) / interpolation;
+					mesh.morphTargetInfluences[ lastKeyframe ] = 1 - mesh.morphTargetInfluences[ keyframe ];
+
+				}
+
+				if ( mesh && mesh.position.z < 0 ) {
+
+					var dist, time = clock.getDelta();
+
+					dist = 550 * time * Math.min( Math.abs( mesh.position.z ) / 1000, 1 );
+
+					mesh.position.z += dist;
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+
+</html>
